@@ -11,6 +11,7 @@
 #include <godot_cpp/classes/button.hpp>
 #include <godot_cpp/classes/check_box.hpp>
 #include <godot_cpp/classes/menu_button.hpp>
+#include <godot_cpp/classes/config_file.hpp>
 
 using namespace godot;
 
@@ -69,6 +70,17 @@ private:
     void importTerrain();
     void exportTerrain();
     void onTerrainMenuItemPressed(const int id);
+
+    static const int MaxPresets = 10;
+    static const char* PresetsFilePath;
+    Ref<ConfigFile> _presetsConfig;
+    void loadPresetsFromDisk();
+    void savePresetsToDisk();
+    void refreshPresetUI();
+    String getPresetDisplayName(int index);
+    void onDockPresetSaveRequested();
+    void onDockPresetLoadRequested(const int index);
+    void onDockPresetDeleteRequested(const int index);
 
 protected:
     static void _bind_methods();

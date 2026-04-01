@@ -66,6 +66,9 @@ void TerraBrushPlugin::_bind_methods() {
     ClassDB::bind_method(D_METHOD("onDockObjectSelected", "index"), &TerraBrushPlugin::onDockObjectSelected);
     ClassDB::bind_method(D_METHOD("onDockMetaInfoSelected", "index"), &TerraBrushPlugin::onDockMetaInfoSelected);
     ClassDB::bind_method(D_METHOD("onDockColorSelected", "value"), &TerraBrushPlugin::onDockColorSelected);
+    ClassDB::bind_method(D_METHOD("onDockPresetSaveRequested"), &TerraBrushPlugin::onDockPresetSaveRequested);
+    ClassDB::bind_method(D_METHOD("onDockPresetLoadRequested", "index"), &TerraBrushPlugin::onDockPresetLoadRequested);
+    ClassDB::bind_method(D_METHOD("onDockPresetDeleteRequested", "index"), &TerraBrushPlugin::onDockPresetDeleteRequested);
 
     ClassDB::bind_method(D_METHOD("onTerraBrushEditorToolTypeSelected", "toolType"), &TerraBrushPlugin::onTerraBrushEditorToolTypeSelected);
     ClassDB::bind_method(D_METHOD("onTerraBrushEditorBrushSelected", "index"), &TerraBrushPlugin::onTerraBrushEditorBrushSelected);
@@ -250,6 +253,9 @@ void TerraBrushPlugin::addDock() {
     _terrainControlDock->connect("objectSelected", Callable(this, "onDockObjectSelected"));
     _terrainControlDock->connect("metaInfoSelected", Callable(this, "onDockMetaInfoSelected"));
     _terrainControlDock->connect("colorSelected", Callable(this, "onDockColorSelected"));
+    _terrainControlDock->connect("presetSaveRequested", Callable(this, "onDockPresetSaveRequested"));
+    _terrainControlDock->connect("presetLoadRequested", Callable(this, "onDockPresetLoadRequested"));
+    _terrainControlDock->connect("presetDeleteRequested", Callable(this, "onDockPresetDeleteRequested"));
 
     _terrainControlDock->setBrushSize(_terraBrushEditor->get_brushSize());
     _terrainControlDock->setBrushStrength(_terraBrushEditor->get_brushStrength());
@@ -260,6 +266,9 @@ void TerraBrushPlugin::addDock() {
     _terrainControlDock->setSelectedObjectIndex(_terraBrushEditor->get_selectedObjectIndex());
     _terrainControlDock->setSelectedMetaInfoIndex(_terraBrushEditor->get_selectedMetaInfoIndex());
     _terrainControlDock->setSelectedColor(_terraBrushEditor->get_selectedColor());
+
+    loadPresetsFromDisk();
+    refreshPresetUI();
 
     Ref<Theme> iconTheme = EditorInterface::get_singleton()->get_editor_theme();
 
@@ -433,4 +442,141 @@ void TerraBrushPlugin::onTerrainMenuItemPressed(const int id) {
 
 void TerraBrushPlugin::updateAutoAddZonesSetting() {
     _terraBrushEditor->set_autoAddZones(_autoAddZonesCheckbox->is_pressed());
+}
+
+// --- Brush Presets ---
+
+const char* TerraBrushPlugin::PresetsFilePath = "user://terrabrush_brush_presets.cfg";
+
+void TerraBrushPlugin::loadPresetsFromDisk() {
+    _presetsConfig = Ref<ConfigFile>(memnew(ConfigFile));
+    _presetsConfig->load(PresetsFilePath);
+}
+
+void TerraBrushPlugin::savePresetsToDisk() {
+    if (_presetsConfig.is_valid()) {
+        _presetsConfig->save(PresetsFilePath);
+    }
+}
+
+void TerraBrushPlugin::refreshPresetUI() {
+    if (_terrainControlDock == nullptr || !_presetsConfig.is_valid()) return;
+
+    Array names = Array();
+    int count = _presetsConfig->get_value("meta", "count", 0);
+    for (int i = 0; i < count; i++) {
+        names.append(getPresetDisplayName(i));
+    }
+    _terrainControlDock->rebuildPresetButtons(names);
+}
+
+String TerraBrushPlugin::getPresetDisplayName(int index) {
+    String section = "preset_" + String::num_int64(index);
+    int toolType = _presetsConfig->get_value(section, "toolType", 0);
+    int brushSize = _presetsConfig->get_value(section, "brushSize", 0);
+    float brushStrength = _presetsConfig->get_value(section, "brushStrength", 0.0);
+
+    // Map tool type to short name
+    String toolName;
+    switch ((TerrainToolType)toolType) {
+        case TERRAINTOOLTYPE_TERRAINADD: toolName = "Raise"; break;
+        case TERRAINTOOLTYPE_TERRAINREMOVE: toolName = "Lower"; break;
+        case TERRAINTOOLTYPE_TERRAINSMOOTH: toolName = "Smooth"; break;
+        case TERRAINTOOLTYPE_TERRAINFLATTEN: toolName = "Flatten"; break;
+        case TERRAINTOOLTYPE_TERRAINSETHEIGHT: toolName = "SetH"; break;
+        case TERRAINTOOLTYPE_TERRAINSETANGLE: toolName = "SetAngle"; break;
+        case TERRAINTOOLTYPE_PAINT: toolName = "Paint"; break;
+        case TERRAINTOOLTYPE_ROADBUILDADD: toolName = "Road+"; break;
+        case TERRAINTOOLTYPE_ROADBUILDREMOVE: toolName = "Road-"; break;
+        default: toolName = "Tool " + String::num_int64(toolType); break;
+    }
+
+    return toolName + " S:" + String::num_int64(brushSize) + " " + String::num(brushStrength, 2);
+}
+
+void TerraBrushPlugin::onDockPresetSaveRequested() {
+    if (_terraBrushEditor == nullptr || !_presetsConfig.is_valid()) return;
+
+    int count = _presetsConfig->get_value("meta", "count", 0);
+    if (count >= MaxPresets) return;
+
+    String section = "preset_" + String::num_int64(count);
+
+    _presetsConfig->set_value(section, "toolType", (int)_terraBrushEditor->get_selectedToolType());
+    _presetsConfig->set_value(section, "brushIndex", _terraBrushEditor->get_brushIndex());
+    _presetsConfig->set_value(section, "brushSize", _terraBrushEditor->get_brushSize());
+    _presetsConfig->set_value(section, "brushStrength", _terraBrushEditor->get_brushStrength());
+    _presetsConfig->set_value(section, "textureIndex", _terraBrushEditor->get_selectedTextureIndex());
+    _presetsConfig->set_value(section, "foliageIndex", _terraBrushEditor->get_selectedFoliageIndex());
+    _presetsConfig->set_value(section, "objectIndex", _terraBrushEditor->get_selectedObjectIndex());
+    _presetsConfig->set_value(section, "metaInfoIndex", _terraBrushEditor->get_selectedMetaInfoIndex());
+    _presetsConfig->set_value(section, "color", _terraBrushEditor->get_selectedColor());
+
+    _presetsConfig->set_value("meta", "count", count + 1);
+
+    savePresetsToDisk();
+    refreshPresetUI();
+}
+
+void TerraBrushPlugin::onDockPresetLoadRequested(const int index) {
+    if (_terraBrushEditor == nullptr || !_presetsConfig.is_valid()) return;
+
+    int count = _presetsConfig->get_value("meta", "count", 0);
+    if (index < 0 || index >= count) return;
+
+    String section = "preset_" + String::num_int64(index);
+
+    TerrainToolType toolType = (TerrainToolType)(int)_presetsConfig->get_value(section, "toolType", 0);
+    _terraBrushEditor->set_selectedToolType(toolType);
+    _terraBrushEditor->set_brushIndex(_presetsConfig->get_value(section, "brushIndex", 0));
+    _terraBrushEditor->set_brushSize(_presetsConfig->get_value(section, "brushSize", 100));
+    _terraBrushEditor->set_brushStrength(_presetsConfig->get_value(section, "brushStrength", 0.1));
+    _terraBrushEditor->set_selectedTextureIndex(_presetsConfig->get_value(section, "textureIndex", 0));
+    _terraBrushEditor->set_selectedFoliageIndex(_presetsConfig->get_value(section, "foliageIndex", 0));
+    _terraBrushEditor->set_selectedObjectIndex(_presetsConfig->get_value(section, "objectIndex", 0));
+    _terraBrushEditor->set_selectedMetaInfoIndex(_presetsConfig->get_value(section, "metaInfoIndex", 0));
+    _terraBrushEditor->set_selectedColor(_presetsConfig->get_value(section, "color", Color(0, 0, 0, 1)));
+
+    // Sync dock UI
+    if (_terrainControlDock != nullptr) {
+        _terrainControlDock->selectToolType(toolType);
+        _terrainControlDock->setBrushSize(_terraBrushEditor->get_brushSize());
+        _terrainControlDock->setBrushStrength(_terraBrushEditor->get_brushStrength());
+        _terrainControlDock->setSelectedBrushIndex(_terraBrushEditor->get_brushIndex());
+        _terrainControlDock->setSelectedTextureIndex(_terraBrushEditor->get_selectedTextureIndex());
+        _terrainControlDock->setSelectedFoliageIndex(_terraBrushEditor->get_selectedFoliageIndex());
+        _terrainControlDock->setSelectedObjectIndex(_terraBrushEditor->get_selectedObjectIndex());
+        _terrainControlDock->setSelectedMetaInfoIndex(_terraBrushEditor->get_selectedMetaInfoIndex());
+        _terrainControlDock->setSelectedColor(_terraBrushEditor->get_selectedColor());
+    }
+}
+
+void TerraBrushPlugin::onDockPresetDeleteRequested(const int index) {
+    if (!_presetsConfig.is_valid()) return;
+
+    int count = _presetsConfig->get_value("meta", "count", 0);
+    if (index < 0 || index >= count) return;
+
+    // Shift presets down to fill the gap
+    for (int i = index; i < count - 1; i++) {
+        String srcSection = "preset_" + String::num_int64(i + 1);
+        String dstSection = "preset_" + String::num_int64(i);
+
+        // Copy all keys from src to dst
+        PackedStringArray keys = _presetsConfig->get_section_keys(srcSection);
+        for (int k = 0; k < keys.size(); k++) {
+            _presetsConfig->set_value(dstSection, keys[k], _presetsConfig->get_value(srcSection, keys[k], Variant()));
+        }
+    }
+
+    // Erase the last section
+    String lastSection = "preset_" + String::num_int64(count - 1);
+    if (_presetsConfig->has_section(lastSection)) {
+        _presetsConfig->erase_section(lastSection);
+    }
+
+    _presetsConfig->set_value("meta", "count", count - 1);
+
+    savePresetsToDisk();
+    refreshPresetUI();
 }

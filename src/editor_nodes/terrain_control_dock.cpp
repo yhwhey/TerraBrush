@@ -16,6 +16,8 @@
 #include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/h_slider.hpp>
 #include <godot_cpp/classes/v_split_container.hpp>
+#include <godot_cpp/classes/h_box_container.hpp>
+#include <godot_cpp/classes/button.hpp>
 
 using namespace godot;
 
@@ -39,6 +41,13 @@ void TerrainControlDock::_bind_methods() {
     ADD_SIGNAL(MethodInfo("objectSelected", PropertyInfo(Variant::INT, "index")));
     ADD_SIGNAL(MethodInfo("metaInfoSelected", PropertyInfo(Variant::INT, "index")));
     ADD_SIGNAL(MethodInfo("colorSelected", PropertyInfo(Variant::COLOR, "value")));
+    ADD_SIGNAL(MethodInfo("presetSaveRequested"));
+    ADD_SIGNAL(MethodInfo("presetLoadRequested", PropertyInfo(Variant::INT, "index")));
+    ADD_SIGNAL(MethodInfo("presetDeleteRequested", PropertyInfo(Variant::INT, "index")));
+
+    ClassDB::bind_method(D_METHOD("onPresetSaveClicked"), &TerrainControlDock::onPresetSaveClicked);
+    ClassDB::bind_method(D_METHOD("onPresetLoadClicked", "index"), &TerrainControlDock::onPresetLoadClicked);
+    ClassDB::bind_method(D_METHOD("onPresetDeleteClicked", "index"), &TerrainControlDock::onPresetDeleteClicked);
 }
 
 TerrainControlDock::TerrainControlDock() {
@@ -519,6 +528,19 @@ void TerrainControlDock::buildLayout() {
                                     _brushesContainer = memnew(HFlowContainer);
                                     toolsBrushesVBoxContainer->add_child(_brushesContainer);
                                 }
+
+                                _presetsContainer = memnew(VBoxContainer);
+                                toolsVBoxContainer->add_child(_presetsContainer);
+                                { // VBoxContainer
+                                    Label *label = memnew(Label);
+                                    label->set_text("Saved Brushes");
+                                    _presetsContainer->add_child(label);
+
+                                    Button *addButton = memnew(Button);
+                                    addButton->set_text("+ Save Current");
+                                    addButton->connect("pressed", Callable(this, "onPresetSaveClicked"));
+                                    _presetsContainer->add_child(addButton);
+                                }
                             }
                         }
                     }
@@ -583,5 +605,47 @@ void TerrainControlDock::buildLayout() {
                 }
             }
         }
+    }
+}
+
+void TerrainControlDock::onPresetSaveClicked() {
+    emit_signal("presetSaveRequested");
+}
+
+void TerrainControlDock::onPresetLoadClicked(const int index) {
+    emit_signal("presetLoadRequested", index);
+}
+
+void TerrainControlDock::onPresetDeleteClicked(const int index) {
+    emit_signal("presetDeleteRequested", index);
+}
+
+void TerrainControlDock::rebuildPresetButtons(const Array &presetNames) {
+    if (_presetsContainer == nullptr) return;
+
+    // Remove old preset buttons (keep the label at index 0 and the + button at index 1)
+    while (_presetsContainer->get_child_count() > 2) {
+        Node *child = _presetsContainer->get_child(2);
+        _presetsContainer->remove_child(child);
+        child->queue_free();
+    }
+
+    // Add a button for each preset
+    for (int i = 0; i < presetNames.size(); i++) {
+        HBoxContainer *row = memnew(HBoxContainer);
+        _presetsContainer->add_child(row);
+
+        Button *loadButton = memnew(Button);
+        loadButton->set_text(String::num_int64(i + 1) + ": " + String(presetNames[i]));
+        loadButton->set_h_size_flags(Control::SizeFlags::SIZE_EXPAND_FILL);
+        loadButton->set_text_overrun_behavior(TextServer::OVERRUN_TRIM_ELLIPSIS);
+        loadButton->connect("pressed", Callable(this, "onPresetLoadClicked").bind(i));
+        row->add_child(loadButton);
+
+        Button *deleteButton = memnew(Button);
+        deleteButton->set_text("x");
+        deleteButton->set_custom_minimum_size(Vector2(28, 0));
+        deleteButton->connect("pressed", Callable(this, "onPresetDeleteClicked").bind(i));
+        row->add_child(deleteButton);
     }
 }

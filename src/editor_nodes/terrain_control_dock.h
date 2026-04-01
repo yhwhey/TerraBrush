@@ -6,6 +6,8 @@
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/flow_container.hpp>
+#include <godot_cpp/classes/v_box_container.hpp>
+#include <godot_cpp/classes/button.hpp>
 #include <godot_cpp/classes/slider.hpp>
 #include <godot_cpp/classes/color_picker_button.hpp>
 #include <godot_cpp/classes/editor_resource_preview.hpp>
@@ -33,6 +35,7 @@ private:
     Slider *_brushSizeSlider = nullptr;
     Slider *_brushStrengthSlider = nullptr;
     ColorPickerButton *_colorPickerButton = nullptr;
+    VBoxContainer *_presetsContainer = nullptr;
 
     TerraBrush *_terraBrush = nullptr;
     EditorResourcePreview *_editorResourcePreview = nullptr;
@@ -60,6 +63,9 @@ private:
     void updateSelectedObject();
     void updateSelectedMetaInfo();
     void updateSelectedColor();
+    void onPresetSaveClicked();
+    void onPresetLoadClicked(const int index);
+    void onPresetDeleteClicked(const int index);
 
 protected:
     static void _bind_methods();
@@ -82,5 +88,7 @@ public:
     void setSelectedObjectIndex(const int index);
     void setSelectedMetaInfoIndex(const int index);
     void setSelectedColor(const Color value);
+
+    void rebuildPresetButtons(const Array &presetNames);
 };
 #endif
