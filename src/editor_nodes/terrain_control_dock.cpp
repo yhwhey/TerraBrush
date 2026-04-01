@@ -455,9 +455,15 @@ void TerrainControlDock::buildLayout() {
                                     _toolTypesContainer->add_child(toolPreview);
 
                                     toolPreview = memnew(ToolPreview);
-                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILD);
+                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD);
                                     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
-                                    toolPreview->set_tooltip_text("Build road");
+                                    toolPreview->set_tooltip_text("Road ascend");
+                                    _toolTypesContainer->add_child(toolPreview);
+
+                                    toolPreview = memnew(ToolPreview);
+                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILDREMOVE);
+                                    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
+                                    toolPreview->set_tooltip_text("Road descend");
                                     _toolTypesContainer->add_child(toolPreview);
                                 }
 

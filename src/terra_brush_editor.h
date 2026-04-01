@@ -54,6 +54,7 @@ private:
     float _selectedSetAngle = 0;
     float _selectedMaxGradeAngle = 8.0f;
     float _selectedEdgeFalloff = 0.3f;
+    float _selectedTextureWidth = 1.0f;
     Color _selectedColor = Color(0, 0, 0, 1.0);
     bool _autoAddZones = false;
     Vector3 _selectedSetAngleInitialPoint = Vector3(Utils::InfinityValue, Utils::InfinityValue, Utils::InfinityValue);

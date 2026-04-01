@@ -148,7 +148,8 @@ void TerraBrushEditor::_bind_methods() {
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_LOCKREMOVE);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_METAINFOADD);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_METAINFOREMOVE);
-    BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILD);
+    BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILDADD);
+    BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILDREMOVE);
 }
 
 TerraBrushEditor::TerraBrushEditor() {
@@ -486,7 +487,8 @@ void TerraBrushEditor::showCurrentToolMenu(Viewport *viewport) {
 
             break;
         case TerrainToolType::TERRAINTOOLTYPE_PAINT:
-        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILD:
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD:
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILDREMOVE:
             if (_terraBrushNode->get_textureSets().is_null() || _terraBrushNode->get_textureSets()->get_textureSets().size() == 0) {
                 return;
             }
@@ -697,6 +699,7 @@ void TerraBrushEditor::beforeDeselectTool() {
         Ref<RoadTool> roadTool = Object::cast_to<RoadTool>(_currentTool.ptr());
         _selectedMaxGradeAngle = roadTool->getMaxGradeAngle();
         _selectedEdgeFalloff = roadTool->getEdgeFalloff();
+        _selectedTextureWidth = roadTool->getTextureWidth();
     }
 
     _currentTool->beforeDeselect();
@@ -764,11 +767,13 @@ Ref<ToolBase> TerraBrushEditor::getToolForType(TerrainToolType toolType) {
             colorTool->updateSelectedColor(_selectedColor);
             return colorTool;
         }
-        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILD: {
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD:
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILDREMOVE: {
             Ref<RoadTool> roadTool = memnew(RoadTool);
             roadTool->updateSelectedTextureIndex(_textureIndex);
             roadTool->updateMaxGradeAngle(_selectedMaxGradeAngle);
             roadTool->updateEdgeFalloff(_selectedEdgeFalloff);
+            roadTool->updateTextureWidth(_selectedTextureWidth);
             return roadTool;
         }
         case TerrainToolType::TERRAINTOOLTYPE_NONE: {
@@ -834,6 +839,9 @@ void TerraBrushEditor::setShiftPressed(bool pressed) {
         }
         else if (_currentToolType == TerrainToolType::TERRAINTOOLTYPE_COLORADD) {
             _temporaryTool = TerrainToolType::TERRAINTOOLTYPE_COLORREMOVE;
+        }
+        else if (_currentToolType == TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD) {
+            _temporaryTool = TerrainToolType::TERRAINTOOLTYPE_ROADBUILDREMOVE;
         }
         else {
             _temporaryTool = TerrainToolType::TERRAINTOOLTYPE_NONE;

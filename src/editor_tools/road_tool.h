@@ -18,14 +18,18 @@ private:
     const float MinGradeAngle = 0.5f;
     const float MaxGradeAngleLimit = 45.0f;
     const float DefaultEdgeFalloff = 0.3f;
+    const float DefaultTextureWidth = 1.0f;
 
     float _maxGradeAngle = DefaultMaxGradeAngle;
     float _edgeFalloff = DefaultEdgeFalloff; // 0.0 = hard edge, 1.0 = full gradient
+    float _textureWidth = DefaultTextureWidth; // 0.1–1.0, fraction of brush radius
     int _selectedTextureIndex = -1;
 
     bool _isFirstPaint = true;
-    Vector2 _previousImagePosition = Vector2();
-    float _previousHeight = 0.0f;
+    float _startHeight = 0.0f;           // height at mouse-down center
+    float _totalDistance = 0.0f;          // accumulated horizontal distance
+    Vector2 _previousImagePosition = Vector2(); // last frame's position (for distance calc)
+    float _previousHeight = 0.0f;        // height at previous frame's position
 
     std::unordered_set<Ref<ZoneResource>> _sculptedZones = std::unordered_set<Ref<ZoneResource>>();
 
@@ -51,6 +55,8 @@ public:
     void updateMaxGradeAngle(float value);
     float getEdgeFalloff();
     void updateEdgeFalloff(float value);
+    float getTextureWidth();
+    void updateTextureWidth(float value);
     void updateSelectedTextureIndex(int value);
 };
 #endif

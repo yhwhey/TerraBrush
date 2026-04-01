@@ -25,7 +25,8 @@ Ref<Image> RoadTool::getToolCurrentImage(Ref<ZoneResource> zone) {
 String RoadTool::getToolInfo(TerrainToolType toolType) {
     String info = "Max grade: " + String::num_real(_maxGradeAngle) + " deg";
     info += "\nEdge falloff: " + String::num(_edgeFalloff * 100, 0) + "%";
-    info += "\nCTRL + scroll: grade | ALT + scroll: falloff";
+    info += "\nTexture width: " + String::num(_textureWidth * 100, 0) + "%";
+    info += "\nCTRL+scroll: grade | ALT+scroll: falloff | CTRL+ALT+scroll: tex width";
     if (_selectedTextureIndex < 0) {
         info += "\nNo texture selected";
     }
@@ -33,7 +34,28 @@ String RoadTool::getToolInfo(TerrainToolType toolType) {
 }
 
 bool RoadTool::handleInput(TerrainToolType toolType, Ref<InputEvent> event) {
-    if (Input::get_singleton()->is_key_pressed(Key::KEY_CTRL)) {
+    bool ctrlPressed = Input::get_singleton()->is_key_pressed(Key::KEY_CTRL);
+    bool altPressed = Input::get_singleton()->is_key_pressed(Key::KEY_ALT);
+
+    // Ctrl+Alt+scroll: texture width
+    if (ctrlPressed && altPressed) {
+        float incrementValue = 0;
+        if (Object::cast_to<InputEventMouseButton>(event.ptr()) != nullptr) {
+            Ref<InputEventMouseButton> inputMouseButton = Object::cast_to<InputEventMouseButton>(event.ptr());
+            if (inputMouseButton->get_button_index() == MouseButton::MOUSE_BUTTON_WHEEL_UP) {
+                incrementValue = 0.05f;
+            } else if (inputMouseButton->get_button_index() == MouseButton::MOUSE_BUTTON_WHEEL_DOWN) {
+                incrementValue = -0.05f;
+            }
+        }
+        if (incrementValue != 0) {
+            updateTextureWidth(_textureWidth + incrementValue);
+            return true;
+        }
+    }
+
+    // Ctrl+scroll: max grade angle
+    if (ctrlPressed && !altPressed) {
         float incrementValue = 0;
 
         if (Object::cast_to<InputEventMouseButton>(event.ptr()) != nullptr) {
@@ -60,7 +82,8 @@ bool RoadTool::handleInput(TerrainToolType toolType, Ref<InputEvent> event) {
         }
     }
 
-    if (Input::get_singleton()->is_key_pressed(Key::KEY_ALT)) {
+    // Alt+scroll: edge falloff
+    if (altPressed && !ctrlPressed) {
         float incrementValue = 0;
 
         if (Object::cast_to<InputEventMouseButton>(event.ptr()) != nullptr) {
@@ -85,6 +108,8 @@ void RoadTool::beginPaint() {
     ToolBase::beginPaint();
 
     _isFirstPaint = true;
+    _startHeight = 0.0f;
+    _totalDistance = 0.0f;
     _previousImagePosition = Vector2();
     _previousHeight = 0.0f;
     _sculptedZones = std::unordered_set<Ref<ZoneResource>>();
@@ -94,7 +119,8 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
     int zonesSize = _terraBrush->get_zonesSize();
     int resolution = _terraBrush->get_resolution();
 
-    // On first paint, read center height from the (untouched) terrain
+    // On mouse-down, only sample the starting height — don't paint yet.
+    // Painting begins once the brush moves, avoiding a bump at the start.
     if (_isFirstPaint) {
         ZoneInfo centerZoneInfo = ZoneUtils::getPixelToZoneInfo(imagePosition.x, imagePosition.y, zonesSize, resolution);
         ImageZoneInfo centerImageZoneInfo = getImageZoneInfoForPosition(centerZoneInfo, 0, 0, true);
@@ -103,51 +129,42 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
             return;
         }
 
-        _previousHeight = centerImageZoneInfo.image->get_pixel(
+        _startHeight = centerImageZoneInfo.image->get_pixel(
             centerImageZoneInfo.zoneInfo.imagePosition.x,
             centerImageZoneInfo.zoneInfo.imagePosition.y
         ).r;
+        _totalDistance = 0.0f;
         _previousImagePosition = imagePosition;
+        _previousHeight = _startHeight;
         _isFirstPaint = false;
+        return; // Don't paint on mouse-down, wait for movement
     }
 
-    // Compute grade-limited target height
-    float distance = _previousImagePosition.distance_to(imagePosition);
-    float targetHeight;
+    // Accumulate horizontal distance traveled
+    float segmentDistance = _previousImagePosition.distance_to(imagePosition);
+    float deadZone = brushSize / 2.0f;
 
-    if (distance < 0.001f) {
-        targetHeight = _previousHeight;
-    } else {
-        // Sample terrain at the LEADING EDGE of the brush (ahead in the movement
-        // direction). The center pixel is likely already painted from previous
-        // strokes, which would hide descents. The leading edge is untouched.
-        Vector2 moveDir = (imagePosition - _previousImagePosition) / distance;
-        Vector2 samplePos = imagePosition + moveDir * (brushSize / 2.0f);
-
-        ZoneInfo sampleZoneInfo = ZoneUtils::getPixelToZoneInfo(samplePos.x, samplePos.y, zonesSize, resolution);
-        ImageZoneInfo sampleImageZoneInfo = getImageZoneInfoForPosition(sampleZoneInfo, 0, 0, true);
-
-        float aheadHeight = _previousHeight; // fallback
-        if (!sampleImageZoneInfo.zone.is_null() && !sampleImageZoneInfo.image.is_null()) {
-            aheadHeight = sampleImageZoneInfo.image->get_pixel(
-                sampleImageZoneInfo.zoneInfo.imagePosition.x,
-                sampleImageZoneInfo.zoneInfo.imagePosition.y
-            ).r;
-        }
-
-        float maxDeltaH = distance * (float)Math::tan(Math::deg_to_rad((double)_maxGradeAngle));
-        float delta = aheadHeight - _previousHeight;
-
-        if (Math::abs(delta) > maxDeltaH) {
-            targetHeight = _previousHeight + Math::sign(delta) * maxDeltaH;
-        } else {
-            targetHeight = aheadHeight;
-        }
+    // Don't paint until the brush has moved at least half its width from the
+    // start point. This prevents flattening an existing road when clicking on it.
+    _totalDistance += segmentDistance;
+    if (_totalDistance < deadZone) {
+        _previousImagePosition = imagePosition;
+        return;
     }
 
-    // Store previous position for segment projection
+    // Subtract the dead zone so height change starts at zero once painting begins
+    float activeDistance = _totalDistance - deadZone;
+    float prevActiveDistance = Math::max(0.0f, (_totalDistance - segmentDistance) - deadZone);
+
+    // Height is purely: startHeight +/- (activeDistance * tan(grade))
+    float gradeSlope = (float)Math::tan(Math::deg_to_rad((double)_maxGradeAngle));
+    float sign = (toolType == TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD) ? 1.0f : -1.0f;
+
+    float prevHeight = _startHeight + sign * prevActiveDistance * gradeSlope;
+    float targetHeight = _startHeight + sign * activeDistance * gradeSlope;
+
+    // Segment for per-pixel projection
     Vector2 prevPos = _previousImagePosition;
-    float prevHeight = _previousHeight;
     Vector2 segDir = imagePosition - prevPos;
     float segLenSq = segDir.dot(segDir);
 
@@ -173,11 +190,13 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
         // Interpolate graded height along segment
         float lerpedTargetH = Math::lerp(prevHeight, targetHeight, t);
 
+        // Distance from brush center (used for falloff and texture width)
+        float distFromCenter = absPos.distance_to(imagePosition);
+        float normalizedDist = (brushRadius > 0.001f) ? distFromCenter / brushRadius : 0.0f;
+
         // Edge falloff: smoothstep based on distance from brush center
         float falloff = 1.0f;
-        if (_edgeFalloff > 0.001f && brushRadius > 0.001f) {
-            float distFromCenter = absPos.distance_to(imagePosition);
-            float normalizedDist = distFromCenter / brushRadius;
+        if (_edgeFalloff > 0.001f) {
             float inner = 1.0f - _edgeFalloff;
             if (normalizedDist > inner) {
                 float ft = Math::clamp((normalizedDist - inner) / _edgeFalloff, 0.0f, 1.0f);
@@ -199,14 +218,14 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
         );
         _sculptedZones.insert(imageZoneInfo.zone);
 
-        // Paint splatmap
-        if (_selectedTextureIndex >= 0 && numberOfSplatmaps > 0) {
+        // Paint splatmap only within texture width
+        if (_selectedTextureIndex >= 0 && numberOfSplatmaps > 0 && normalizedDist <= _textureWidth) {
             paintSplatmapForPixel(imageZoneInfo, combinedStrength);
         }
     }));
 
     _previousImagePosition = imagePosition;
-    _previousHeight = targetHeight;
+    _previousHeight = targetHeight; // for reference only, actual height is from _startHeight + _totalDistance
 
     _terraBrush->get_terrainZones()->updateHeightmaps();
     if (_selectedTextureIndex >= 0) {
@@ -293,6 +312,14 @@ float RoadTool::getEdgeFalloff() {
 
 void RoadTool::updateEdgeFalloff(float value) {
     _edgeFalloff = Math::clamp(value, 0.0f, 1.0f);
+}
+
+float RoadTool::getTextureWidth() {
+    return _textureWidth;
+}
+
+void RoadTool::updateTextureWidth(float value) {
+    _textureWidth = Math::clamp(value, 0.1f, 1.0f);
 }
 
 void RoadTool::updateSelectedTextureIndex(int value) {

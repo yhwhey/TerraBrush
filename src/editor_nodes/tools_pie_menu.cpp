@@ -217,10 +217,17 @@ void ToolsPieMenu::_ready() {
     _pieMenu->add_child(memnew(Control)); // Splitter
 
     toolPreview = memnew(ToolPreview);
-    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILD);
+    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILDADD);
     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
-    toolPreview->set_iconType(DockPreviewButton::IconType::Circle);
-    toolPreview->set_tooltip_text("Build road");
+    toolPreview->set_iconType(DockPreviewButton::IconType::CircleWithSign);
+    toolPreview->set_tooltip_text("Road ascend");
+    _pieMenu->add_child(toolPreview);
+
+    toolPreview = memnew(ToolPreview);
+    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILDREMOVE);
+    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
+    toolPreview->set_iconType(DockPreviewButton::IconType::CircleWithSign);
+    toolPreview->set_tooltip_text("Road descend");
     _pieMenu->add_child(toolPreview);
 
     _pieMenu->add_child(memnew(Control)); // Splitter
