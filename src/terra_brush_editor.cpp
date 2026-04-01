@@ -16,6 +16,7 @@
 #include "editor_tools/lock_tool.h"
 #include "editor_tools/meta_info_tool.h"
 #include "editor_tools/color_tool.h"
+#include "editor_tools/road_tool.h"
 
 #include "misc/zone_utils.h"
 #include "misc/custom_content_loader.h"
@@ -147,6 +148,7 @@ void TerraBrushEditor::_bind_methods() {
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_LOCKREMOVE);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_METAINFOADD);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_METAINFOREMOVE);
+    BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILD);
 }
 
 TerraBrushEditor::TerraBrushEditor() {
@@ -484,6 +486,7 @@ void TerraBrushEditor::showCurrentToolMenu(Viewport *viewport) {
 
             break;
         case TerrainToolType::TERRAINTOOLTYPE_PAINT:
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILD:
             if (_terraBrushNode->get_textureSets().is_null() || _terraBrushNode->get_textureSets()->get_textureSets().size() == 0) {
                 return;
             }
@@ -690,6 +693,10 @@ void TerraBrushEditor::beforeDeselectTool() {
         Ref<SetAngleTool> setAngleTool = Object::cast_to<SetAngleTool>(_currentTool.ptr());
         _selectedSetAngle = setAngleTool->getSetAngleValue();
         _selectedSetAngleInitialPoint = setAngleTool->getSetAngleInitialPoint();
+    } else if (Object::cast_to<RoadTool>(_currentTool.ptr()) != nullptr) {
+        Ref<RoadTool> roadTool = Object::cast_to<RoadTool>(_currentTool.ptr());
+        _selectedMaxGradeAngle = roadTool->getMaxGradeAngle();
+        _selectedEdgeFalloff = roadTool->getEdgeFalloff();
     }
 
     _currentTool->beforeDeselect();
@@ -756,6 +763,13 @@ Ref<ToolBase> TerraBrushEditor::getToolForType(TerrainToolType toolType) {
             Ref<ColorTool> colorTool = memnew(ColorTool);
             colorTool->updateSelectedColor(_selectedColor);
             return colorTool;
+        }
+        case TerrainToolType::TERRAINTOOLTYPE_ROADBUILD: {
+            Ref<RoadTool> roadTool = memnew(RoadTool);
+            roadTool->updateSelectedTextureIndex(_textureIndex);
+            roadTool->updateMaxGradeAngle(_selectedMaxGradeAngle);
+            roadTool->updateEdgeFalloff(_selectedEdgeFalloff);
+            return roadTool;
         }
         case TerrainToolType::TERRAINTOOLTYPE_NONE: {
             return nullptr;
@@ -1017,6 +1031,10 @@ void TerraBrushEditor::set_selectedTextureIndex(const int value) {
     if (!_currentTool.is_null() && Object::cast_to<TextureTool>(_currentTool.ptr()) != nullptr) {
         Ref<TextureTool> textureTool = Object::cast_to<TextureTool>(_currentTool.ptr());
         textureTool->updateSelectedTextureIndex(value);
+    }
+    if (!_currentTool.is_null() && Object::cast_to<RoadTool>(_currentTool.ptr()) != nullptr) {
+        Ref<RoadTool> roadTool = Object::cast_to<RoadTool>(_currentTool.ptr());
+        roadTool->updateSelectedTextureIndex(value);
     }
 }
 

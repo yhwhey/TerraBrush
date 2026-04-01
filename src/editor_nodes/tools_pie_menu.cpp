@@ -216,6 +216,15 @@ void ToolsPieMenu::_ready() {
 
     _pieMenu->add_child(memnew(Control)); // Splitter
 
+    toolPreview = memnew(ToolPreview);
+    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILD);
+    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
+    toolPreview->set_iconType(DockPreviewButton::IconType::Circle);
+    toolPreview->set_tooltip_text("Build road");
+    _pieMenu->add_child(toolPreview);
+
+    _pieMenu->add_child(memnew(Control)); // Splitter
+
     add_child(_pieMenu); // This is done at the end so the menu calculates the content in the _ready function
 
     for (int i = 0; i < _pieMenu->get_child_count(); i++) {

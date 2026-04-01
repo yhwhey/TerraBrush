@@ -453,6 +453,12 @@ void TerrainControlDock::buildLayout() {
                                     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/tag_remove.png"));
                                     toolPreview->set_tooltip_text("Remove meta info");
                                     _toolTypesContainer->add_child(toolPreview);
+
+                                    toolPreview = memnew(ToolPreview);
+                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_ROADBUILD);
+                                    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/road_build.png"));
+                                    toolPreview->set_tooltip_text("Build road");
+                                    _toolTypesContainer->add_child(toolPreview);
                                 }
 
                                 VBoxContainer *toolsBrushSizeVBoxContainer = memnew(VBoxContainer);
