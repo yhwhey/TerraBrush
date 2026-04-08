@@ -12,7 +12,8 @@ void vertex() {
 		VERTEX,
 		NORMAL,
 		COLOR,
-		_instancePosition
+		_instancePosition,
+		INV_VIEW_MATRIX
 	);
 }
 

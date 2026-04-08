@@ -3,7 +3,9 @@
     "allow": [
       "Bash(grep -E \"\\\\.\\(h|cpp\\)$\")",
       "Read(//e/Godot_Projects/freespec-rally/addons/**)",
-      "Read(//e/Godot_Projects/freespec-rally/**)"
+      "Read(//e/Godot_Projects/freespec-rally/**)",
+      "Bash(scons platform=windows target=template_release)",
+      "Bash(cp:*)"
     ]
   }
 }

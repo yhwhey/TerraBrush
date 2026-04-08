@@ -130,7 +130,7 @@ vec4 calculateGroundColor(vec3 zoneUV) {
 	return resultTexture;
 }
 
-void calculateFoliageVertex(int instanceID, inout vec3 vertex, inout vec3 normal, inout vec4 color, out vec3 instancePosition) {
+void calculateFoliageVertex(int instanceID, inout vec3 vertex, inout vec3 normal, inout vec4 color, out vec3 instancePosition, mat4 invViewMatrix) {
 	// Compute the clipmap INDEX position
 	int currentIndex = instanceID;
 
@@ -249,7 +249,8 @@ void calculateFoliageVertex(int instanceID, inout vec3 vertex, inout vec3 normal
 		}
 
 		if (!foliagePresence) {
-			foliagePresence = foliagePosition.x > 0.0;
+			float presenceThreshold = (noiseRandom.y + 1.0) * 0.5;
+			foliagePresence = foliagePosition.x > presenceThreshold;
 		}
 
 		if (foliagePresence) {
@@ -270,7 +271,7 @@ void calculateFoliageVertex(int instanceID, inout vec3 vertex, inout vec3 normal
 
 				height -= waterHeight;
 
-				particlePosition.y = height;
+				particlePosition.y = height + 0.15;
 
 				// Apply the meshscale
 				vertex *= MeshScale;
@@ -299,12 +300,13 @@ void calculateFoliageVertex(int instanceID, inout vec3 vertex, inout vec3 normal
 				windDirection *= randomValue * WindStrength;
 				vertex = ((vertex - particlePosition) * rotateX(windDirection)) + particlePosition;
 
-				// Apply random rotation to each foliage
-				float randomRotation = mix(0, radians(360), randomValue);
-				mat3 randomRotationMat = rotateY(randomRotation);
-				vertex = ((vertex - particlePosition) * randomRotationMat) + particlePosition;
+				// Billboard: rotate to face camera view direction
+				vec3 cameraForward = invViewMatrix[2].xyz;
+				float billboardAngle = atan(cameraForward.x, cameraForward.z);
+				mat3 billboardRotation = rotateY(billboardAngle);
+				vertex = ((vertex - particlePosition) * billboardRotation) + particlePosition;
 
-				normal *= randomRotationMat;
+				normal *= billboardRotation;
 
 				if (UseGroundColor) {
 					color = calculateGroundColor(foliageZoneUV);

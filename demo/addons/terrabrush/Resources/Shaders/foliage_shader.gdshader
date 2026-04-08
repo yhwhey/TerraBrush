@@ -90,7 +90,8 @@ void start() {
 
 	// Calculate the noise/random value with the zoneUV;
 	vec4 noiseTextureValue = texture(NoiseTexture, zoneUV.xy);
-	float noiseRandom = hash_noise_range(noiseTextureValue.rgb).x;
+	vec3 noiseRandomVec = hash_noise_range(noiseTextureValue.rgb);
+	float noiseRandom = noiseRandomVec.x;
 	float noiseValue = mix(-1, 1, noiseRandom);
 
 	xPosition += noiseValue;
@@ -105,7 +106,8 @@ void start() {
 	} else {
 		if (RESTART_POSITION) {
 			vec4 foliagePosition = texture(FoliageTextures, zoneUV);
-			bool foliagePresence = foliagePosition.x > 0.0;
+			float presenceThreshold = (noiseRandomVec.y + 1.0) * 0.5;
+			bool foliagePresence = foliagePosition.x > presenceThreshold;
 
 			float particleDistance = length(vec2(xPosition, yPosition) - globalPosition.xz);
 			// From center means that we need to divide the max distance by 2.0
@@ -126,7 +128,7 @@ void start() {
 
 					height -= waterHeight;
 
-					particlePosition.y = height;
+					particlePosition.y = height + 0.15;
 
 					float meshScaleFactor = foliagePosition.a;
 
