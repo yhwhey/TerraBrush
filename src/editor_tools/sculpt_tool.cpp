@@ -1,5 +1,6 @@
 #include "sculpt_tool.h"
 #include "../misc/setting_contants.h"
+#include "../misc/zone_utils.h"
 
 #include <functional>
 #include <godot_cpp/classes/project_settings.hpp>
@@ -45,7 +46,7 @@ void SculptTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brus
 
     switch (toolType) {
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINSMOOTH:
-            smooth(brushImage, brushSize, brushStrength, imagePosition);
+            smoothFromCenter(brushImage, brushSize, brushStrength, imagePosition);
             break;
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINFLATTEN:
             flatten(brushImage, brushSize, brushStrength, imagePosition);
@@ -140,6 +141,71 @@ void SculptTool::smooth(Ref<Image> brushImage, int brushSize, float brushStrengt
 
         Color newPixel = Color(resultValue, currentPixel.g, currentPixel.b, currentPixel.a);
         imageZoneInfo.image->set_pixel(imageZoneInfo.zoneInfo.imagePosition.x, imageZoneInfo.zoneInfo.imagePosition.y, newPixel);
+        _sculptedZones.insert(imageZoneInfo.zone);
+    }));
+}
+
+void SculptTool::smoothFromCenter(Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition) {
+    int zonesSize = _terraBrush->get_zonesSize();
+    int resolution = _terraBrush->get_resolution();
+    ZoneInfo centerZoneInfo = ZoneUtils::getPixelToZoneInfo(imagePosition.x, imagePosition.y, zonesSize, resolution);
+
+    int sampleRadius = MAX(brushSize / 10, 2);
+
+    // Fit a plane to the center area: h(dx,dy) = a + b*dx + c*dy
+    // With symmetric sampling, sum(dx)=0, sum(dy)=0, sum(dx*dy)=0, so:
+    //   a = mean(h), b = sum(h*dx)/sum(dx^2), c = sum(h*dy)/sum(dy^2)
+    double sumH = 0, sumHdx = 0, sumHdy = 0, sumDx2 = 0, sumDy2 = 0;
+    int count = 0;
+
+    for (int dx = -sampleRadius; dx <= sampleRadius; dx++) {
+        for (int dy = -sampleRadius; dy <= sampleRadius; dy++) {
+            ImageZoneInfo info = getImageZoneInfoForPosition(centerZoneInfo, dx, dy, true);
+            if (!info.zone.is_null()) {
+                float h = info.image->get_pixel(info.zoneInfo.imagePosition.x, info.zoneInfo.imagePosition.y).r;
+                sumH += h;
+                sumHdx += h * dx;
+                sumHdy += h * dy;
+                sumDx2 += (double)dx * dx;
+                sumDy2 += (double)dy * dy;
+                count++;
+            }
+        }
+    }
+
+    if (count == 0) {
+        return;
+    }
+
+    float planeA = (float)(sumH / count);
+    float planeB = sumDx2 > 0 ? (float)(sumHdx / sumDx2) : 0.0f;
+    float planeC = sumDy2 > 0 ? (float)(sumHdy / sumDy2) : 0.0f;
+
+    // Get image size to compute global pixel coordinates across zones
+    int imageSize = zonesSize;
+    {
+        ImageZoneInfo centerInfo = getImageZoneInfoForPosition(centerZoneInfo, 0, 0, true);
+        if (!centerInfo.zone.is_null() && !centerInfo.image.is_null()) {
+            imageSize = centerInfo.image->get_width();
+        }
+    }
+
+    int centerGlobalX = centerZoneInfo.zonePosition.x * imageSize + centerZoneInfo.imagePosition.x;
+    int centerGlobalY = centerZoneInfo.zonePosition.y * imageSize + centerZoneInfo.imagePosition.y;
+
+    // Apply across the full brush: lerp each pixel toward the fitted plane
+    forEachBrushPixel(brushImage, brushSize, imagePosition, ([&](ImageZoneInfo &imageZoneInfo, float pixelBrushStrength) {
+        int pixelGlobalX = imageZoneInfo.zoneInfo.zonePosition.x * imageSize + imageZoneInfo.zoneInfo.imagePosition.x;
+        int pixelGlobalY = imageZoneInfo.zoneInfo.zonePosition.y * imageSize + imageZoneInfo.zoneInfo.imagePosition.y;
+        int dx = pixelGlobalX - centerGlobalX;
+        int dy = pixelGlobalY - centerGlobalY;
+
+        float planeHeight = planeA + planeB * dx + planeC * dy;
+
+        Color currentPixel = imageZoneInfo.image->get_pixel(imageZoneInfo.zoneInfo.imagePosition.x, imageZoneInfo.zoneInfo.imagePosition.y);
+        float newValue = Math::lerp(currentPixel.r, planeHeight, pixelBrushStrength * brushStrength);
+
+        imageZoneInfo.image->set_pixel(imageZoneInfo.zoneInfo.imagePosition.x, imageZoneInfo.zoneInfo.imagePosition.y, Color(newValue, currentPixel.g, currentPixel.b, currentPixel.a));
         _sculptedZones.insert(imageZoneInfo.zone);
     }));
 }

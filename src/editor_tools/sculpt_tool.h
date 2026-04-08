@@ -17,6 +17,7 @@ private:
     void sculpt(TerrainToolType toolType, Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition);
     void flatten(Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition);
     void smooth(Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition);
+    void smoothFromCenter(Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition);
 
 protected:
     static void _bind_methods();
