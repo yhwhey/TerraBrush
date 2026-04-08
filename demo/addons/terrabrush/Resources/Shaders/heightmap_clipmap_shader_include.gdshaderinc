@@ -21,6 +21,7 @@ uniform sampler2DArray HeightTexturesNearest : filter_nearest_mipmap;
 uniform bool HasHeightTextures;
 uniform bool UseAntitile = true;
 uniform float BlendFactor;
+uniform float BlendSharpness = 1.0;
 uniform bool NearestFilter = false;
 uniform int AlbedoAlphaChannelUsage = 0; // None = 0; Roughness = 1; Height = 2
 uniform int NormalAlphaChannelUsage = 0; // None = 0; Roughness = 1; Height = 2
@@ -29,6 +30,7 @@ uniform int[100] TexturesTriplanar;
 uniform float[100] TexturesMetallic;
 uniform float[100] TexturesSpecular;
 uniform bool UseSharpTransitions = false;
+uniform bool UseFlatShading = false;
 uniform bool ApplyMetaInfoTextures = false;
 uniform sampler2DArray MetaInfoTextures: filter_nearest;
 uniform vec4[100] MetaInfoColors;
@@ -345,6 +347,7 @@ void calculateHeightmapFragment(
             if (useHeightTextures) {
                 heightBlendedChannelValue = min(contrast(BlendFactor, currentHeight.x) + channelValue, 1.0) * sqrt(channelValue);
             }
+            heightBlendedChannelValue = pow(heightBlendedChannelValue, BlendSharpness);
 
             if (heightBlendedChannelValue <= 0.0001) {
                 continue;

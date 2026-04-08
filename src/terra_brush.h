@@ -66,6 +66,7 @@ private:
     AlphaChannelUsage _albedoAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     AlphaChannelUsage _normalAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     bool _useSharpTransitions = false;
+    bool _useFlatShading = false;
 
     // Foliage settings
     TypedArray<Ref<FoliageResource>> _foliages = TypedArray<Ref<FoliageResource>>();
@@ -166,6 +167,9 @@ public:
 
     bool get_useSharpTransitions() const;
     void set_useSharpTransitions(const bool value);
+
+    bool get_useFlatShading() const;
+    void set_useFlatShading(const bool value);
 
     TypedArray<Ref<FoliageResource>> get_foliages() const;
     void set_foliages(const TypedArray<Ref<FoliageResource>> value);

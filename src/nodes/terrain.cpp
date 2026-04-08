@@ -44,6 +44,7 @@ Terrain::Terrain() {
     _albedoAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     _normalAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     _useSharpTransitions = false;
+    _useFlatShading = false;
     _visualInstanceLayers = 1;
     _collisionLayers = 1;
     _lodLevels = 8;
@@ -118,6 +119,10 @@ void Terrain::set_normalAlphaChannelUsage(const AlphaChannelUsage value) {
 
 void Terrain::set_useSharpTransitions(const bool value) {
     _useSharpTransitions = value;
+}
+
+void Terrain::set_useFlatShading(const bool value) {
+    _useFlatShading = value;
 }
 
 void Terrain::set_waterFactor(const float value) {
@@ -399,6 +404,7 @@ void Terrain::updateTextures() {
             _clipmap->get_shader()->set_shader_parameter(StringNames::NumberOfTextures(), textureArray->get_layers());
         }
         _clipmap->get_shader()->set_shader_parameter(StringNames::UseSharpTransitions(), _useSharpTransitions);
+        _clipmap->get_shader()->set_shader_parameter(StringNames::UseFlatShading(), _useFlatShading);
 
         if (normalTextures.size() > 0) {
             Ref<Texture2DArray> normalArray = Utils::texturesToTextureArray(normalTextures);

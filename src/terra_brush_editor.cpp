@@ -17,6 +17,7 @@
 #include "editor_tools/meta_info_tool.h"
 #include "editor_tools/color_tool.h"
 #include "editor_tools/road_tool.h"
+#include "editor_tools/decimate_tool.h"
 
 #include "misc/zone_utils.h"
 #include "misc/custom_content_loader.h"
@@ -150,6 +151,7 @@ void TerraBrushEditor::_bind_methods() {
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_METAINFOREMOVE);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILDADD);
     BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_ROADBUILDREMOVE);
+    BIND_ENUM_CONSTANT(TERRAINTOOLTYPE_DECIMATE);
 }
 
 TerraBrushEditor::TerraBrushEditor() {
@@ -700,6 +702,9 @@ void TerraBrushEditor::beforeDeselectTool() {
         _selectedMaxGradeAngle = roadTool->getMaxGradeAngle();
         _selectedEdgeFalloff = roadTool->getEdgeFalloff();
         _selectedTextureWidth = roadTool->getTextureWidth();
+    } else if (Object::cast_to<DecimateTool>(_currentTool.ptr()) != nullptr) {
+        Ref<DecimateTool> decimateTool = Object::cast_to<DecimateTool>(_currentTool.ptr());
+        _selectedFacetSize = decimateTool->getFacetSize();
     }
 
     _currentTool->beforeDeselect();
@@ -775,6 +780,11 @@ Ref<ToolBase> TerraBrushEditor::getToolForType(TerrainToolType toolType) {
             roadTool->updateEdgeFalloff(_selectedEdgeFalloff);
             roadTool->updateTextureWidth(_selectedTextureWidth);
             return roadTool;
+        }
+        case TerrainToolType::TERRAINTOOLTYPE_DECIMATE: {
+            Ref<DecimateTool> decimateTool = memnew(DecimateTool);
+            decimateTool->updateFacetSize(_selectedFacetSize);
+            return decimateTool;
         }
         case TerrainToolType::TERRAINTOOLTYPE_NONE: {
             return nullptr;

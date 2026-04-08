@@ -350,6 +350,12 @@ void TerrainControlDock::buildLayout() {
                                     _toolTypesContainer->add_child(toolPreview);
 
                                     toolPreview = memnew(ToolPreview);
+                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_DECIMATE);
+                                    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/map_decimate.png"));
+                                    toolPreview->set_tooltip_text("Decimate terrain (low-poly)");
+                                    _toolTypesContainer->add_child(toolPreview);
+
+                                    toolPreview = memnew(ToolPreview);
                                     toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_COLORADD);
                                     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/color_add.png"));
                                     toolPreview->set_tooltip_text("Add color");

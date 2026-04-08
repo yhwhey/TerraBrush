@@ -79,6 +79,7 @@ const StringName StringNames::Resolution() { return "Resolution"; }
 const StringName StringNames::Triplanar() { return "Triplanar"; }
 const StringName StringNames::TexturesTriplanar() { return "TexturesTriplanar"; }
 const StringName StringNames::UseSharpTransitions() { return "UseSharpTransitions"; }
+const StringName StringNames::UseFlatShading() { return "UseFlatShading"; }
 const StringName StringNames::ApplyMetaInfoTextures() { return "ApplyMetaInfoTextures"; }
 const StringName StringNames::MetaInfoTextures() { return "MetaInfoTextures"; }
 const StringName StringNames::MetaInfoColors() { return "MetaInfoColors"; }

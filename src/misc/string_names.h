@@ -84,6 +84,7 @@ class StringNames {
         const static StringName Triplanar();
         const static StringName TexturesTriplanar();
         const static StringName UseSharpTransitions();
+        const static StringName UseFlatShading();
         const static StringName ApplyMetaInfoTextures();
         const static StringName MetaInfoTextures();
         const static StringName MetaInfoColors();

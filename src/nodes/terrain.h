@@ -45,6 +45,7 @@ private:
     AlphaChannelUsage _albedoAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     AlphaChannelUsage _normalAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     bool _useSharpTransitions = false;
+    bool _useFlatShading = false;
     float _waterFactor = 0;
     Ref<Texture2D> _defaultTexture = nullptr;
     int _visualInstanceLayers = 0;
@@ -94,6 +95,7 @@ public:
     void set_albedoAlphaChannelUsage(const AlphaChannelUsage value);
     void set_normalAlphaChannelUsage(const AlphaChannelUsage value);
     void set_useSharpTransitions(const bool value);
+    void set_useFlatShading(const bool value);
     void set_waterFactor(const float value);
     void set_defaultTexture(const Ref<Texture2D> &value);
     void set_visualInstanceLayers(const int value);

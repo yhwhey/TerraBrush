@@ -33,4 +33,12 @@ void fragment() {
 		SPECULAR,
 		ROUGHNESS
 	);
+
+	if (UseFlatShading) {
+		// Compute per-face normal from view-space vertex position derivatives.
+		// VERTEX is in view space in the fragment shader, matching NORMAL's expected space.
+		NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));
+		// Reset normal map to neutral so texture normals don't override the flat normal.
+		NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+	}
 }

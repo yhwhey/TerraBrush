@@ -125,6 +125,10 @@ void TerraBrush::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_useSharpTransitions", "value"), &TerraBrush::set_useSharpTransitions);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "useSharpTransitions"), "set_useSharpTransitions", "get_useSharpTransitions");
 
+    ClassDB::bind_method(D_METHOD("get_useFlatShading"), &TerraBrush::get_useFlatShading);
+    ClassDB::bind_method(D_METHOD("set_useFlatShading", "value"), &TerraBrush::set_useFlatShading);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "useFlatShading"), "set_useFlatShading", "get_useFlatShading");
+
     ADD_GROUP("Foliages", "");
 
     ClassDB::bind_method(D_METHOD("get_foliages"), &TerraBrush::get_foliages);
@@ -212,6 +216,7 @@ TerraBrush::TerraBrush() {
     _albedoAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     _normalAlphaChannelUsage = AlphaChannelUsage::ALPHACHANNELUSAGE_NONE;
     _useSharpTransitions = false;
+    _useFlatShading = false;
 
     // Foliages settings
     _foliages = TypedArray<Ref<FoliageResource>>();
@@ -461,6 +466,13 @@ void TerraBrush::set_useSharpTransitions(const bool value) {
     _useSharpTransitions = value;
 }
 
+bool TerraBrush::get_useFlatShading() const {
+    return _useFlatShading;
+}
+void TerraBrush::set_useFlatShading(const bool value) {
+    _useFlatShading = value;
+}
+
 TypedArray<Ref<FoliageResource>> TerraBrush::get_foliages() const {
     return _foliages;
 }
@@ -572,6 +584,7 @@ void TerraBrush::loadTerrain() {
     _terrain->set_albedoAlphaChannelUsage(_albedoAlphaChannelUsage);
     _terrain->set_normalAlphaChannelUsage(_normalAlphaChannelUsage);
     _terrain->set_useSharpTransitions(_useSharpTransitions);
+    _terrain->set_useFlatShading(_useFlatShading);
     _terrain->set_waterFactor(_waterDefinition.is_null() ? 0 : _waterDefinition->get_waterFactor());
     _terrain->set_lodLevels(_lodLevels);
     _terrain->set_lodRowsPerLevel(_lodRowsPerLevel);
