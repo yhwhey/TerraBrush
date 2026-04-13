@@ -559,7 +559,7 @@ void TerraBrush::loadTerrain() {
         _terrainZones->updateLockTexture(_zonesSize);
     }
     _terrainZones->updateZonesMap();
-    _terrainZones->updateHeightmaps();
+    _terrainZones->updateHeightmaps(_zonesSize);
     _terrainZones->updateColorTextures(_zonesSize);
 
     if (Engine::get_singleton()->is_editor_hint() || (!_collisionOnly && DisplayServer::get_singleton()->window_can_draw())) {

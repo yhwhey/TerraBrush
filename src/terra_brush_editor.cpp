@@ -715,6 +715,7 @@ Ref<ToolBase> TerraBrushEditor::getToolForType(TerrainToolType toolType) {
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINADD:
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINREMOVE:
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINSMOOTH:
+        case TerrainToolType::TERRAINTOOLTYPE_TERRAINBLURSMOOTH:
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINFLATTEN:
             return memnew(SculptTool);
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINSETHEIGHT: {

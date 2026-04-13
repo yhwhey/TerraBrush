@@ -111,7 +111,7 @@ void SetHeightTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int b
         _sculptedZones.insert(imageZoneInfo.zone);
     }));
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }
 
 float SetHeightTool::getSetHeightValue() {

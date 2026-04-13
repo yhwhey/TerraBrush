@@ -57,7 +57,8 @@ public:
     void set_zones(const TypedArray<Ref<ZoneResource>> value);
 
     void updateLockTexture(int zoneSize);
-    void updateHeightmaps();
+    void updateHeightmaps(int zonesSize);
+    void syncHeightmapBoundaries(int zonesSize);
     void updateColorTextures(int zoneSize);
     void updateSplatmapsTextures();
     void initializeFoliageTextures(int foliageCount);

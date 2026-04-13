@@ -142,7 +142,7 @@ void SetAngleTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int br
         _sculptedZones.insert(imageZoneInfo.zone);
     }));
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }
 
 void SetAngleTool::updateInitialPointMesh() {

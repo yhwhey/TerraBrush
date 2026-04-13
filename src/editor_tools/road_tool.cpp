@@ -227,7 +227,7 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
     _previousImagePosition = imagePosition;
     _previousHeight = targetHeight; // for reference only, actual height is from _startHeight + _totalDistance
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
     if (_selectedTextureIndex >= 0) {
         _terraBrush->get_terrainZones()->updateSplatmapsTextures();
     }

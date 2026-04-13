@@ -48,6 +48,9 @@ void SculptTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brus
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINSMOOTH:
             smoothFromCenter(brushImage, brushSize, brushStrength, imagePosition);
             break;
+        case TerrainToolType::TERRAINTOOLTYPE_TERRAINBLURSMOOTH:
+            smooth(brushImage, brushSize, brushStrength, imagePosition);
+            break;
         case TerrainToolType::TERRAINTOOLTYPE_TERRAINFLATTEN:
             flatten(brushImage, brushSize, brushStrength, imagePosition);
             break;
@@ -57,7 +60,7 @@ void SculptTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brus
             break;
     }
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }
 
 void SculptTool::sculpt(TerrainToolType toolType, Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition) {
@@ -181,7 +184,9 @@ void SculptTool::smoothFromCenter(Ref<Image> brushImage, int brushSize, float br
     float planeB = sumDx2 > 0 ? (float)(sumHdx / sumDx2) : 0.0f;
     float planeC = sumDy2 > 0 ? (float)(sumHdy / sumDy2) : 0.0f;
 
-    // Get image size to compute global pixel coordinates across zones
+    // Compute the zone stride for global pixel coordinates across zones.
+    // This must match the stride used by getZoneInfoFromZoneOffset so that
+    // dx/dy values are consistent between the plane fitting and application.
     int imageSize = zonesSize;
     {
         ImageZoneInfo centerInfo = getImageZoneInfoForPosition(centerZoneInfo, 0, 0, true);
@@ -189,14 +194,15 @@ void SculptTool::smoothFromCenter(Ref<Image> brushImage, int brushSize, float br
             imageSize = centerInfo.image->get_width();
         }
     }
+    int zoneStride = Math::min(imageSize, zonesSize - 1);
 
-    int centerGlobalX = centerZoneInfo.zonePosition.x * imageSize + centerZoneInfo.imagePosition.x;
-    int centerGlobalY = centerZoneInfo.zonePosition.y * imageSize + centerZoneInfo.imagePosition.y;
+    int centerGlobalX = centerZoneInfo.zonePosition.x * zoneStride + centerZoneInfo.imagePosition.x;
+    int centerGlobalY = centerZoneInfo.zonePosition.y * zoneStride + centerZoneInfo.imagePosition.y;
 
     // Apply across the full brush: lerp each pixel toward the fitted plane
     forEachBrushPixel(brushImage, brushSize, imagePosition, ([&](ImageZoneInfo &imageZoneInfo, float pixelBrushStrength) {
-        int pixelGlobalX = imageZoneInfo.zoneInfo.zonePosition.x * imageSize + imageZoneInfo.zoneInfo.imagePosition.x;
-        int pixelGlobalY = imageZoneInfo.zoneInfo.zonePosition.y * imageSize + imageZoneInfo.zoneInfo.imagePosition.y;
+        int pixelGlobalX = imageZoneInfo.zoneInfo.zonePosition.x * zoneStride + imageZoneInfo.zoneInfo.imagePosition.x;
+        int pixelGlobalY = imageZoneInfo.zoneInfo.zonePosition.y * zoneStride + imageZoneInfo.zoneInfo.imagePosition.y;
         int dx = pixelGlobalX - centerGlobalX;
         int dy = pixelGlobalY - centerGlobalY;
 

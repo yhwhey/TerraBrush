@@ -41,7 +41,14 @@ void ToolsPieMenu::_ready() {
     toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_TERRAINSMOOTH);
     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/map_smooth.png"));
     toolPreview->set_iconType(DockPreviewButton::IconType::CircleWithSign);
-    toolPreview->set_tooltip_text("Smooth terrain");
+    toolPreview->set_tooltip_text("Smooth terrain (plane fit)");
+    _pieMenu->add_child(toolPreview);
+
+    toolPreview = memnew(ToolPreview);
+    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_TERRAINBLURSMOOTH);
+    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/map_blur.png"));
+    toolPreview->set_iconType(DockPreviewButton::IconType::CircleWithSign);
+    toolPreview->set_tooltip_text("Smooth terrain (blur)");
     _pieMenu->add_child(toolPreview);
 
     toolPreview = memnew(ToolPreview);

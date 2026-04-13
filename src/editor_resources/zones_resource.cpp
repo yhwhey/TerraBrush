@@ -87,7 +87,68 @@ void ZonesResource::updateLockTexture(int zoneSize) {
     }
 }
 
-void ZonesResource::updateHeightmaps() {
+void ZonesResource::syncHeightmapBoundaries(int zonesSize) {
+    if (_zones.size() <= 1) return;
+
+    for (int i = 0; i < _zones.size(); i++) {
+        Ref<ZoneResource> zone = _zones[i];
+        Ref<Image> image = zone->get_heightMapImage();
+        if (image.is_null()) continue;
+
+        int imageSize = image->get_width();
+        // Phantom pixels only exist when imageSize > zonesSize - 1 (i.e., resolution == 1)
+        if (imageSize <= zonesSize - 1) continue;
+
+        Vector2i pos = zone->get_zonePosition();
+
+        // Find right neighbor (+1, 0) and copy its column 0 to our last column
+        for (int j = 0; j < _zones.size(); j++) {
+            Ref<ZoneResource> neighbor = _zones[j];
+            Vector2i npos = neighbor->get_zonePosition();
+            if (npos.x == pos.x + 1 && npos.y == pos.y) {
+                Ref<Image> neighborImage = neighbor->get_heightMapImage();
+                if (!neighborImage.is_null()) {
+                    for (int y = 0; y < imageSize; y++) {
+                        image->set_pixel(imageSize - 1, y, neighborImage->get_pixel(0, y));
+                    }
+                }
+                break;
+            }
+        }
+
+        // Find bottom neighbor (0, +1) and copy its row 0 to our last row
+        for (int j = 0; j < _zones.size(); j++) {
+            Ref<ZoneResource> neighbor = _zones[j];
+            Vector2i npos = neighbor->get_zonePosition();
+            if (npos.x == pos.x && npos.y == pos.y + 1) {
+                Ref<Image> neighborImage = neighbor->get_heightMapImage();
+                if (!neighborImage.is_null()) {
+                    for (int x = 0; x < imageSize; x++) {
+                        image->set_pixel(x, imageSize - 1, neighborImage->get_pixel(x, 0));
+                    }
+                }
+                break;
+            }
+        }
+
+        // Find diagonal neighbor (+1, +1) and copy its corner pixel (0,0) to our corner
+        for (int j = 0; j < _zones.size(); j++) {
+            Ref<ZoneResource> neighbor = _zones[j];
+            Vector2i npos = neighbor->get_zonePosition();
+            if (npos.x == pos.x + 1 && npos.y == pos.y + 1) {
+                Ref<Image> neighborImage = neighbor->get_heightMapImage();
+                if (!neighborImage.is_null()) {
+                    image->set_pixel(imageSize - 1, imageSize - 1, neighborImage->get_pixel(0, 0));
+                }
+                break;
+            }
+        }
+    }
+}
+
+void ZonesResource::updateHeightmaps(int zonesSize) {
+    syncHeightmapBoundaries(zonesSize);
+
     TypedArray<Ref<Image>> images = TypedArray<Ref<Image>>();
     for (Ref<ZoneResource> zone : _zones) {
         images.append(zone->get_heightMapImage());
@@ -272,7 +333,7 @@ void ZonesResource::updateImageImages(int zoneSize) {
     if (Engine::get_singleton()->is_editor_hint()) {
         updateLockTexture(zoneSize);
     }
-    updateHeightmaps();
+    updateHeightmaps(zoneSize);
     updateColorTextures(zoneSize);
     updateSplatmapsTextures();
     updateFoliagesTextures();

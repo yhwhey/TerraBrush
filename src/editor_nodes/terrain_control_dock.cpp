@@ -328,7 +328,13 @@ void TerrainControlDock::buildLayout() {
                                     toolPreview = memnew(ToolPreview);
                                     toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_TERRAINSMOOTH);
                                     toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/map_smooth.png"));
-                                    toolPreview->set_tooltip_text("Smooth terrain");
+                                    toolPreview->set_tooltip_text("Smooth terrain (plane fit)");
+                                    _toolTypesContainer->add_child(toolPreview);
+
+                                    toolPreview = memnew(ToolPreview);
+                                    toolPreview->set_toolType(TerrainToolType::TERRAINTOOLTYPE_TERRAINBLURSMOOTH);
+                                    toolPreview->set_buttonImage(ResourceLoader::get_singleton()->load("res://addons/terrabrush/Assets/Icons/map_blur.png"));
+                                    toolPreview->set_tooltip_text("Smooth terrain (blur)");
                                     _toolTypesContainer->add_child(toolPreview);
 
                                     toolPreview = memnew(ToolPreview);

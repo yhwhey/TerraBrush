@@ -47,5 +47,5 @@ void HoleTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
         _sculptedZones.insert(imageZoneInfo.zone);
     }));
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }

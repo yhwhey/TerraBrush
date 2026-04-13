@@ -113,12 +113,17 @@ ZoneInfo ZoneUtils::getPixelToZoneInfo(float x, float y, int zonesSize, int reso
 
 ZoneInfo ZoneUtils::getZoneInfoFromZoneOffset(ZoneInfo &startingZone, Vector2i offset, int zonesSize, int resolution) {
     int resolutionSize = getImageSizeForResolution(zonesSize, resolution);
+    // Use a stride that matches getPixelToZoneInfo's zone boundary (zonesSize - 1 world units).
+    // For resolution=1, imageSize == zonesSize which is 1 larger than the number of unique
+    // world positions per zone, creating a phantom last pixel. Using min() ensures the phantom
+    // pixel maps to the next zone's pixel 0 instead of staying in the current zone.
+    int stride = Math::min(resolutionSize, zonesSize - 1);
     Vector2 pixelPosition = Vector2(startingZone.imagePosition.x + offset.x, startingZone.imagePosition.y + offset.y);
-    int zoneXPosition = (int) Math::floor(pixelPosition.x / resolutionSize);
-    int zoneYPosition = (int) Math::floor(pixelPosition.y / resolutionSize);
+    int zoneXPosition = (int) Math::floor(pixelPosition.x / stride);
+    int zoneYPosition = (int) Math::floor(pixelPosition.y / stride);
 
-    int zoneBrushXPosition = (int) Math::round(((pixelPosition.x / resolutionSize) - zoneXPosition) * resolutionSize);
-    int zoneBrushYPosition = (int) Math::round(((pixelPosition.y / resolutionSize) - zoneYPosition) * resolutionSize);
+    int zoneBrushXPosition = (int) Math::round(((pixelPosition.x / stride) - zoneXPosition) * stride);
+    int zoneBrushYPosition = (int) Math::round(((pixelPosition.y / stride) - zoneYPosition) * stride);
 
     int resolutionZoneBrushXPosition = zoneBrushXPosition;
     int resolutionZoneBrushYPosition = zoneBrushYPosition;

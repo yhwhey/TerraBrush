@@ -74,7 +74,7 @@ void DecimateTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int br
 
     decimate(brushImage, brushSize, brushStrength, imagePosition);
 
-    _terraBrush->get_terrainZones()->updateHeightmaps();
+    _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }
 
 static uint32_t cornerHash(int x, int y) {
