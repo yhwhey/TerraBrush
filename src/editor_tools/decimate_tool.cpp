@@ -1,6 +1,8 @@
 #include "decimate_tool.h"
 
 #include <functional>
+#include <map>
+#include <tuple>
 
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
@@ -48,7 +50,6 @@ void DecimateTool::beginPaint() {
     ToolBase::beginPaint();
 
     _sculptedZones = std::unordered_set<Ref<ZoneResource>>();
-    _cornerCache.clear();
 }
 
 void DecimateTool::endPaint() {
@@ -76,33 +77,50 @@ void DecimateTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int br
     _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
 }
 
+static uint32_t cornerHash(int x, int y) {
+    uint32_t h = (uint32_t)(x * 374761393 + y * 668265263);
+    h = (h ^ (h >> 13)) * 1274126177;
+    return h ^ (h >> 16);
+}
+
 void DecimateTool::decimate(Ref<Image> brushImage, int brushSize, float brushStrength, Vector2 imagePosition) {
-    // _cornerCache persists across paint() calls within a single drag stroke
-    // (cleared in beginPaint/endPaint). This ensures repeated strokes sample
-    // from the original terrain heights, preventing cumulative height drift.
+    // Cache corner heights so we read them from the original terrain before any modification.
+    // Key: (zoneKey, gridX, gridY) -> height
+    std::map<std::tuple<int, int, int>, float> cornerCache;
+
+    int jitterRange = _facetSize / 3;
 
     auto getCornerHeight = [&](Ref<Image> image, int zoneKey, int gridX, int gridY) -> float {
         auto key = std::make_tuple(zoneKey, gridX, gridY);
-        auto it = _cornerCache.find(key);
-        if (it != _cornerCache.end()) {
+        auto it = cornerCache.find(key);
+        if (it != cornerCache.end()) {
             return it->second;
         }
 
         int imgW = image->get_width();
         int imgH = image->get_height();
 
-        int sampleX = CLAMP(gridX, 0, imgW - 1);
-        int sampleY = CLAMP(gridY, 0, imgH - 1);
+        // Jitter the sampling position for organic irregularity.
+        // The jitter is deterministic (hash-based) so repeated strokes are stable.
+        int sampleX = gridX;
+        int sampleY = gridY;
+        if (jitterRange > 0) {
+            uint32_t h = cornerHash(gridX, gridY);
+            sampleX += (int)(h % (2 * jitterRange + 1)) - jitterRange;
+            sampleY += (int)((h >> 10) % (2 * jitterRange + 1)) - jitterRange;
+        }
+        sampleX = CLAMP(sampleX, 0, imgW - 1);
+        sampleY = CLAMP(sampleY, 0, imgH - 1);
 
         float height = image->get_pixel(sampleX, sampleY).r;
-        _cornerCache[key] = height;
+        cornerCache[key] = height;
         return height;
     };
 
     // For each pixel, compute the height of the flat triangular facet it falls on.
     // The coarse grid has corners at multiples of _facetSize. Each quad is split into
-    // two triangles along the B→C diagonal. Heights at the corners are sampled from
-    // the original terrain and cached for the entire drag stroke.
+    // two triangles with a randomized diagonal direction per cell. Heights at the
+    // corners are sampled with jitter so the facets look organic, not grid-aligned.
     forEachBrushPixel(brushImage, brushSize, imagePosition, ([&](ImageZoneInfo &imageZoneInfo, float pixelBrushStrength) {
         if (pixelBrushStrength <= 0.0f) {
             return;
