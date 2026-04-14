@@ -229,7 +229,7 @@ void RoadTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int brushS
 
     _terraBrush->get_terrainZones()->updateHeightmaps(_terraBrush->get_zonesSize());
     if (_selectedTextureIndex >= 0) {
-        _terraBrush->get_terrainZones()->updateSplatmapsTextures();
+        _terraBrush->get_terrainZones()->updateSplatmapsTextures(_terraBrush->get_zonesSize());
     }
 }
 

@@ -87,67 +87,64 @@ void ZonesResource::updateLockTexture(int zoneSize) {
     }
 }
 
-void ZonesResource::syncHeightmapBoundaries(int zonesSize) {
-    if (_zones.size() <= 1) return;
+Ref<ZoneResource> ZonesResource::findNeighborZone(Vector2i position, Vector2i offset) {
+    Vector2i target = Vector2i(position.x + offset.x, position.y + offset.y);
+    for (int j = 0; j < _zones.size(); j++) {
+        Ref<ZoneResource> neighbor = _zones[j];
+        if (neighbor->get_zonePosition() == target) return neighbor;
+    }
+    return nullptr;
+}
 
+void ZonesResource::syncImageEdge(Ref<Image> image, Ref<Image> neighborImage, int edge) {
+    int imageSize = image->get_width();
+    if (edge == 0) {
+        // Right: copy neighbor's column 0 to our last column
+        for (int y = 0; y < imageSize; y++) {
+            image->set_pixel(imageSize - 1, y, neighborImage->get_pixel(0, y));
+        }
+    } else if (edge == 1) {
+        // Bottom: copy neighbor's row 0 to our last row
+        for (int x = 0; x < imageSize; x++) {
+            image->set_pixel(x, imageSize - 1, neighborImage->get_pixel(x, 0));
+        }
+    } else {
+        // Diagonal corner
+        image->set_pixel(imageSize - 1, imageSize - 1, neighborImage->get_pixel(0, 0));
+    }
+}
+
+void ZonesResource::syncBoundaries(int zonesSize, std::function<void(Ref<ZoneResource>, Ref<ZoneResource>)> syncFn) {
+    if (_zones.size() <= 1) return;
     for (int i = 0; i < _zones.size(); i++) {
         Ref<ZoneResource> zone = _zones[i];
-        Ref<Image> image = zone->get_heightMapImage();
-        if (image.is_null()) continue;
-
-        int imageSize = image->get_width();
-        // Phantom pixels only exist when imageSize > zonesSize - 1 (i.e., resolution == 1)
-        if (imageSize <= zonesSize - 1) continue;
-
         Vector2i pos = zone->get_zonePosition();
 
-        // Find right neighbor (+1, 0) and copy its column 0 to our last column
-        for (int j = 0; j < _zones.size(); j++) {
-            Ref<ZoneResource> neighbor = _zones[j];
-            Vector2i npos = neighbor->get_zonePosition();
-            if (npos.x == pos.x + 1 && npos.y == pos.y) {
-                Ref<Image> neighborImage = neighbor->get_heightMapImage();
-                if (!neighborImage.is_null()) {
-                    for (int y = 0; y < imageSize; y++) {
-                        image->set_pixel(imageSize - 1, y, neighborImage->get_pixel(0, y));
-                    }
-                }
-                break;
-            }
-        }
+        Ref<ZoneResource> right = findNeighborZone(pos, Vector2i(1, 0));
+        if (!right.is_null()) syncFn(zone, right);
 
-        // Find bottom neighbor (0, +1) and copy its row 0 to our last row
-        for (int j = 0; j < _zones.size(); j++) {
-            Ref<ZoneResource> neighbor = _zones[j];
-            Vector2i npos = neighbor->get_zonePosition();
-            if (npos.x == pos.x && npos.y == pos.y + 1) {
-                Ref<Image> neighborImage = neighbor->get_heightMapImage();
-                if (!neighborImage.is_null()) {
-                    for (int x = 0; x < imageSize; x++) {
-                        image->set_pixel(x, imageSize - 1, neighborImage->get_pixel(x, 0));
-                    }
-                }
-                break;
-            }
-        }
+        Ref<ZoneResource> bottom = findNeighborZone(pos, Vector2i(0, 1));
+        if (!bottom.is_null()) syncFn(zone, bottom);
 
-        // Find diagonal neighbor (+1, +1) and copy its corner pixel (0,0) to our corner
-        for (int j = 0; j < _zones.size(); j++) {
-            Ref<ZoneResource> neighbor = _zones[j];
-            Vector2i npos = neighbor->get_zonePosition();
-            if (npos.x == pos.x + 1 && npos.y == pos.y + 1) {
-                Ref<Image> neighborImage = neighbor->get_heightMapImage();
-                if (!neighborImage.is_null()) {
-                    image->set_pixel(imageSize - 1, imageSize - 1, neighborImage->get_pixel(0, 0));
-                }
-                break;
-            }
-        }
+        Ref<ZoneResource> diag = findNeighborZone(pos, Vector2i(1, 1));
+        if (!diag.is_null()) syncFn(zone, diag);
     }
 }
 
 void ZonesResource::updateHeightmaps(int zonesSize) {
-    syncHeightmapBoundaries(zonesSize);
+    syncBoundaries(zonesSize, [this, zonesSize](Ref<ZoneResource> zone, Ref<ZoneResource> neighbor) {
+        Ref<Image> image = zone->get_heightMapImage();
+        Ref<Image> neighborImage = neighbor->get_heightMapImage();
+        if (image.is_null() || neighborImage.is_null()) return;
+        int imageSize = image->get_width();
+        if (imageSize <= zonesSize - 1) return;
+
+        Vector2i pos = zone->get_zonePosition();
+        Vector2i npos = neighbor->get_zonePosition();
+        if (npos.x == pos.x + 1 && npos.y == pos.y) syncImageEdge(image, neighborImage, 0);
+        else if (npos.x == pos.x && npos.y == pos.y + 1) syncImageEdge(image, neighborImage, 1);
+        else syncImageEdge(image, neighborImage, 2);
+    });
 
     TypedArray<Ref<Image>> images = TypedArray<Ref<Image>>();
     for (Ref<ZoneResource> zone : _zones) {
@@ -160,6 +157,18 @@ void ZonesResource::updateHeightmaps(int zonesSize) {
 }
 
 void ZonesResource::updateColorTextures(int zoneSize) {
+    syncBoundaries(zoneSize, [this, zoneSize](Ref<ZoneResource> zone, Ref<ZoneResource> neighbor) {
+        Ref<Image> image = zone->get_colorImage();
+        Ref<Image> neighborImage = neighbor->get_colorImage();
+        if (image.is_null() || neighborImage.is_null()) return;
+
+        Vector2i pos = zone->get_zonePosition();
+        Vector2i npos = neighbor->get_zonePosition();
+        if (npos.x == pos.x + 1 && npos.y == pos.y) syncImageEdge(image, neighborImage, 0);
+        else if (npos.x == pos.x && npos.y == pos.y + 1) syncImageEdge(image, neighborImage, 1);
+        else syncImageEdge(image, neighborImage, 2);
+    });
+
     TypedArray<Ref<Image>> images = TypedArray<Ref<Image>>();
     for (Ref<ZoneResource> zone : _zones) {
         if (zone->get_colorImage().is_null()) {
@@ -174,7 +183,25 @@ void ZonesResource::updateColorTextures(int zoneSize) {
     }
 }
 
-void ZonesResource::updateSplatmapsTextures() {
+void ZonesResource::updateSplatmapsTextures(int zonesSize) {
+    syncBoundaries(zonesSize, [this, zonesSize](Ref<ZoneResource> zone, Ref<ZoneResource> neighbor) {
+        TypedArray<Ref<Image>> images = zone->get_splatmapsImage();
+        TypedArray<Ref<Image>> neighborImages = neighbor->get_splatmapsImage();
+        int count = Math::min((int) images.size(), (int) neighborImages.size());
+
+        Vector2i pos = zone->get_zonePosition();
+        Vector2i npos = neighbor->get_zonePosition();
+        int edge = (npos.x == pos.x + 1 && npos.y == pos.y) ? 0 : (npos.x == pos.x && npos.y == pos.y + 1) ? 1 : 2;
+
+        for (int k = 0; k < count; k++) {
+            Ref<Image> image = images[k];
+            Ref<Image> neighborImage = neighborImages[k];
+            if (!image.is_null() && !neighborImage.is_null()) {
+                syncImageEdge(image, neighborImage, edge);
+            }
+        }
+    });
+
     TypedArray<Ref<Image>> images = TypedArray<Ref<Image>>();
     for (Ref<ZoneResource> zone : _zones) {
         if (zone->get_splatmapsImage().size() > 0) {
@@ -335,7 +362,7 @@ void ZonesResource::updateImageImages(int zoneSize) {
     }
     updateHeightmaps(zoneSize);
     updateColorTextures(zoneSize);
-    updateSplatmapsTextures();
+    updateSplatmapsTextures(zoneSize);
     updateFoliagesTextures();
     updateObjectsTextures();
     updateWaterTextures();

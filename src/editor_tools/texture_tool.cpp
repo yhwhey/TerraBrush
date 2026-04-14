@@ -60,7 +60,7 @@ void TextureTool::paint(TerrainToolType toolType, Ref<Image> brushImage, int bru
         }
     }));
 
-    _terraBrush->get_terrainZones()->updateSplatmapsTextures();
+    _terraBrush->get_terrainZones()->updateSplatmapsTextures(_terraBrush->get_zonesSize());
 }
 
 void TextureTool::updateSelectedTextureIndex(int value) {

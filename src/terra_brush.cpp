@@ -553,7 +553,7 @@ void TerraBrush::loadTerrain() {
 
         createSplatmaps(zone);
     }
-    _terrainZones->updateSplatmapsTextures();
+    _terrainZones->updateSplatmapsTextures(_zonesSize);
 
     if (Engine::get_singleton()->is_editor_hint()) {
         _terrainZones->updateLockTexture(_zonesSize);

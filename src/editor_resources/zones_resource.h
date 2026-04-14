@@ -11,6 +11,7 @@
 #include <godot_cpp/templates/hash_set.hpp>
 
 #include <unordered_set>
+#include <functional>
 
 using namespace godot;
 
@@ -34,6 +35,8 @@ private:
     TypedArray<Ref<ZoneResource>> _zones = TypedArray<Ref<ZoneResource>>();
 
     void saveImageResource(Ref<Image> image);
+    void syncImageEdge(Ref<Image> image, Ref<Image> neighborImage, int edge);
+    Ref<ZoneResource> findNeighborZone(Vector2i position, Vector2i offset);
 
 protected:
     static void _bind_methods();
@@ -58,9 +61,9 @@ public:
 
     void updateLockTexture(int zoneSize);
     void updateHeightmaps(int zonesSize);
-    void syncHeightmapBoundaries(int zonesSize);
     void updateColorTextures(int zoneSize);
-    void updateSplatmapsTextures();
+    void updateSplatmapsTextures(int zonesSize);
+    void syncBoundaries(int zonesSize, std::function<void(Ref<ZoneResource>, Ref<ZoneResource>)> syncFn);
     void initializeFoliageTextures(int foliageCount);
     void updateFoliagesTextures();
     void updateFoliagesTextures(int foliageIndex);
